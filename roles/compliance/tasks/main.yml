@@ -1,17 +1,10 @@
----
-- name: Ensure site.fact exists
+- name: Check if patch compliance fact file exists
   stat:
     path: /etc/ansible/facts.d/site.fact
   register: fact_file
 
-- name: Read patch compliance status
-  command: cat /etc/ansible/facts.d/site.fact
-  when: fact_file.stat.exists
-  register: site_fact_raw
-  changed_when: false
-
-- name: Get patchcompliance line from site.fact
-  shell: "grep patchcompliance /etc/ansible/fact.d/site.fact | awk -F '\"' '{print $4}'"
+- name: Get patchcompliance value using grep
+  shell: "grep patchcompliance /etc/ansible/facts.d/site.fact | awk -F '\"' '{print $4}'"
   register: patch_output
   changed_when: false
   when: fact_file.stat.exists
@@ -21,30 +14,38 @@
     patch_compliance: "{{ patch_output.stdout | default('Unknown') }}"
   when: patch_output is defined
 
-
-- name: Collect server info
+- name: Set up server report
   set_fact:
     server_report:
-      ip: "{{ ansible_host }}"
-      name: "{{ ansible_hostname }}"
+      ip: "{{ ansible_host | default(inventory_hostname) }}"
+      name: "{{ inventory_hostname }}"
       os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
       kernel: "{{ ansible_kernel }}"
       uptime: "{{ (ansible_uptime_seconds | int // 3600) }} hrs {{ ((ansible_uptime_seconds | int % 3600) // 60) }} mins"
-      compliance: "{{ patch_compliance | default('Not Available') }}"
+      compliance: "{{ patch_compliance }}"
 
-- name: Create report directory
+- name: Save server report JSON on remote node
+  copy:
+    dest: "/tmp/compliance_{{ inventory_hostname }}.json"
+    content: "{{ server_report | to_nice_json }}"
+
+- name: Create local report directory on control node
   delegate_to: localhost
+  become: false
   file:
     path: /tmp/compliance_report
     state: directory
     mode: '0755'
 
-- name: Add host data to hostvars file
-  delegate_to: localhost
-  copy:
-    dest: "/tmp/compliance_report/{{ inventory_hostname }}.json"
-    content: "{{ server_report | to_nice_json }}"
+- name: Fetch JSON report from remote to control node
+  fetch:
+    src: "/tmp/compliance_{{ inventory_hostname }}.json"
+    dest: "/tmp/compliance_report/"
+    flat: yes
 
-- name: Generate Excel report
+- name: Generate Excel report on control node
   delegate_to: localhost
+  become: false
+  environment:
+    PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
   script: files/generate_excel_report.py
