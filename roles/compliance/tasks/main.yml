@@ -11,7 +11,7 @@
   changed_when: false
 
 - name: Get patchcompliance line from site.fact
-  shell: "grep patchcompliance /etc/ansible/facts.d/site.fact | awk -F '\"' '{print $4}'"
+  shell: "grep patchcompliance /etc/ansible/fact.d/site.fact | awk -F '\"' '{print $4}'"
   register: patch_output
   changed_when: false
   when: fact_file.stat.exists
