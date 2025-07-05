@@ -10,10 +10,16 @@
   register: site_fact_raw
   changed_when: false
 
-- name: Set patch compliance
-  set_fact:
-    patch_compliance: "{{ site_fact_raw.stdout | regex_search('\"patchcompliance\":\\s*\"([^\"]+)\"', '\\1') | default('Unknown') }}"
+- name: Get patchcompliance line from site.fact
+  shell: "grep patchcompliance /etc/ansible/facts.d/site.fact | awk -F '\"' '{print $4}'"
+  register: patch_output
+  changed_when: false
   when: fact_file.stat.exists
+
+- name: Set patch compliance fact
+  set_fact:
+    patch_compliance: "{{ patch_output.stdout | default('Unknown') }}"
+  when: patch_output is defined
 
 
 - name: Collect server info
