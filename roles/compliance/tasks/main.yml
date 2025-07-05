@@ -29,7 +29,7 @@
       name: "{{ ansible_hostname }}"
       os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
       kernel: "{{ ansible_kernel }}"
-      uptime: "{{ ansible_uptime_seconds | int | community.general.seconds_to_human }}"
+      uptime: "{{ (ansible_uptime_seconds | int // 3600) }} hrs {{ ((ansible_uptime_seconds | int % 3600) // 60) }} mins"
       compliance: "{{ patch_compliance | default('Not Available') }}"
 
 - name: Create report directory
