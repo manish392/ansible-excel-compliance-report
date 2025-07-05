@@ -29,7 +29,7 @@ for filepath in data_files:
 # Convert to DataFrame
 df = pd.DataFrame(rows)
 
-# Reorder columns (if available)
+# Reorder columns
 columns = ["ip", "name", "os", "kernel", "uptime", "compliance"]
 df = df[[col for col in columns if col in df.columns]]
 
@@ -41,12 +41,10 @@ with pd.ExcelWriter(excel_file, engine="openpyxl") as writer:
     df.to_excel(writer, sheet_name="Compliance Report", index=False)
     worksheet = writer.sheets["Compliance Report"]
 
-    # Format column widths
     for i, column in enumerate(df.columns, 1):
         max_length = max(df[column].astype(str).map(len).max(), len(column))
         worksheet.column_dimensions[get_column_letter(i)].width = max_length + 4
 
-    # Style header
     header_fill = PatternFill(start_color="4CAF50", end_color="4CAF50", fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF")
     for cell in worksheet[1]:
