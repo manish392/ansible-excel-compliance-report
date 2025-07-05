@@ -1,7 +1,6 @@
----
-- name: Server Compliance Reporting (Excel Only)
+- name: Generate Compliance Excel Report
   hosts: all
   gather_facts: yes
-  become: yes
+  become: false
   roles:
     - compliance
