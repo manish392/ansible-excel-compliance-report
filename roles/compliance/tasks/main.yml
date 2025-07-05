@@ -12,8 +12,9 @@
 
 - name: Set patch compliance
   set_fact:
-    patch_compliance: "{{ site_fact_raw.stdout | regex_search('"patchcompliance":\s*"([^"]+)"', '\1') | default('Unknown') }}"
+    patch_compliance: "{{ site_fact_raw.stdout | regex_search('\"patchcompliance\":\\s*\"([^\"]+)\"', '\\1') | default('Unknown') }}"
   when: fact_file.stat.exists
+
 
 - name: Collect server info
   set_fact:
