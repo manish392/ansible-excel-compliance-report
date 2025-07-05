@@ -1,30 +1,56 @@
 #!/usr/bin/env python3
-import json, os, glob
-import pandas as pd
 
+import json
+import os
+import glob
+import pandas as pd
+from openpyxl.styles import Font, PatternFill
+from openpyxl.utils import get_column_letter
+
+# Define the report directory
 report_dir = "/tmp/compliance_report"
+
+# Gather all .json files from report directory
 data_files = glob.glob(os.path.join(report_dir, "*.json"))
 
+if not data_files:
+    print("No JSON data files found in", report_dir)
+    exit(1)
+
+# Load data from all files
 rows = []
-for f in data_files:
-    with open(f) as infile:
-        rows.append(json.load(infile))
+for filepath in data_files:
+    with open(filepath) as f:
+        try:
+            rows.append(json.load(f))
+        except Exception as e:
+            print(f"Error reading {filepath}: {e}")
 
+# Convert to DataFrame
 df = pd.DataFrame(rows)
-df = df[["ip", "name", "os", "kernel", "uptime", "compliance"]]
 
+# Reorder columns (if available)
+columns = ["ip", "name", "os", "kernel", "uptime", "compliance"]
+df = df[[col for col in columns if col in df.columns]]
+
+# Output Excel file path
 excel_file = os.path.join(report_dir, "compliance_report.xlsx")
-with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
-    df.to_excel(writer, index=False, sheet_name='Compliance Report')
 
-    # Formatting (eye-catching)
-    workbook = writer.book
-    worksheet = writer.sheets['Compliance Report']
-    for col_cells in worksheet.columns:
-        length = max(len(str(cell.value)) for cell in col_cells)
-        worksheet.column_dimensions[col_cells[0].column_letter].width = length + 4
-    header_font = openpyxl.styles.Font(bold=True, color="FFFFFF")
-    fill = openpyxl.styles.PatternFill("solid", fgColor="4CAF50")
+# Write to Excel with styling
+with pd.ExcelWriter(excel_file, engine="openpyxl") as writer:
+    df.to_excel(writer, sheet_name="Compliance Report", index=False)
+    worksheet = writer.sheets["Compliance Report"]
+
+    # Format column widths
+    for i, column in enumerate(df.columns, 1):
+        max_length = max(df[column].astype(str).map(len).max(), len(column))
+        worksheet.column_dimensions[get_column_letter(i)].width = max_length + 4
+
+    # Style header
+    header_fill = PatternFill(start_color="4CAF50", end_color="4CAF50", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
     for cell in worksheet[1]:
+        cell.fill = header_fill
         cell.font = header_font
-        cell.fill = fill
+
+print("✅ Excel report generated:", excel_file)
