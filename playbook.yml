@@ -1,0 +1,7 @@
+---
+- name: Server Compliance Reporting (Excel Only)
+  hosts: all
+  gather_facts: yes
+  become: yes
+  roles:
+    - compliance

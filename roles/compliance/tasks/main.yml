@@ -1,0 +1,43 @@
+---
+- name: Ensure site.fact exists
+  stat:
+    path: /etc/ansible/facts.d/site.fact
+  register: fact_file
+
+- name: Read patch compliance status
+  command: cat /etc/ansible/facts.d/site.fact
+  when: fact_file.stat.exists
+  register: site_fact_raw
+  changed_when: false
+
+- name: Set patch compliance
+  set_fact:
+    patch_compliance: "{{ site_fact_raw.stdout | regex_search('"patchcompliance":\s*"([^"]+)"', '\1') | default('Unknown') }}"
+  when: fact_file.stat.exists
+
+- name: Collect server info
+  set_fact:
+    server_report:
+      ip: "{{ ansible_host }}"
+      name: "{{ ansible_hostname }}"
+      os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+      kernel: "{{ ansible_kernel }}"
+      uptime: "{{ ansible_uptime_seconds | int | community.general.seconds_to_human }}"
+      compliance: "{{ patch_compliance | default('Not Available') }}"
+
+- name: Create report directory
+  delegate_to: localhost
+  file:
+    path: /tmp/compliance_report
+    state: directory
+    mode: '0755'
+
+- name: Add host data to hostvars file
+  delegate_to: localhost
+  copy:
+    dest: "/tmp/compliance_report/{{ inventory_hostname }}.json"
+    content: "{{ server_report | to_nice_json }}"
+
+- name: Generate Excel report
+  delegate_to: localhost
+  script: files/generate_excel_report.py
