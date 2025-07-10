@@ -1,11 +1,11 @@
-
 - name: Check if patch compliance fact file exists
   stat:
     path: /etc/ansible/facts.d/site.fact
   register: fact_file
 
-- name: Get patchcompliance value using grep
-  shell: "grep patchcompliance /etc/ansible/facts.d/site.fact | awk -F '=' '{print $2}'"
+- name: Get patchcompliance value using awk
+  ansible.builtin.shell: |
+    awk -F'"' '/patchcompliance/ {print $4}' /etc/ansible/facts.d/site.fact
   register: patch_output
   changed_when: false
   when: fact_file.stat.exists
