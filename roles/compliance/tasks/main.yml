@@ -1,10 +1,11 @@
+
 - name: Check if patch compliance fact file exists
   stat:
     path: /etc/ansible/facts.d/site.fact
   register: fact_file
 
 - name: Get patchcompliance value using grep
-  shell: "grep patchcompliance /etc/ansible/facts.d/site.fact | awk -F '\"' '{print $4}'"
+  shell: "grep patchcompliance /etc/ansible/facts.d/site.fact | awk -F '=' '{print $2}'"
   register: patch_output
   changed_when: false
   when: fact_file.stat.exists
@@ -18,7 +19,7 @@
   set_fact:
     server_report:
       ip: "{{ ansible_host | default(inventory_hostname) }}"
-      name: "{{ inventory_hostname }}"
+      name: "{{ ansible_fqdn | default(ansible_hostname) }}"
       os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
       kernel: "{{ ansible_kernel }}"
       uptime: "{{ (ansible_uptime_seconds | int // 3600) }} hrs {{ ((ansible_uptime_seconds | int % 3600) // 60) }} mins"
